@@ -1,0 +1,12 @@
+# 최소 필수 패키지
+fastapi
+uvicorn[standard]
+python-multipart
+
+# 추가 패키지 (필요시 설치)
+# sqlalchemy
+# pyjwt
+# pillow
+# opencv-python
+# numpy
+# aiofiles
