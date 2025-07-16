@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>피그마 SVG Export 도구</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #2260FF;
+        }
+
+        textarea {
+            height: 120px;
+            resize: vertical;
+            font-family: monospace;
+        }
+
+        .btn {
+            background: #2260FF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #1a4fd9;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #2260FF;
+        }
+
+        .error {
+            background: #fee;
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+
+        .success {
+            background: #d4edda;
+            border-left-color: #28a745;
+            color: #155724;
+        }
+
+        .copy-btn {
+            background: #28a745;
+            margin-left: 10px;
+        }
+
+        .copy-btn:hover {
+            background: #218838;
+        }
+
+        .instructions {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .instructions h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 피그마 SVG Export 도구</h1>
+        
+        <div class="instructions">
+            <h3>📋 사용 방법</h3>
+            <ol>
+                <li>피그마에서 export하고 싶은 요소를 선택</li>
+                <li>우클릭 → "Copy/Paste as" → "Copy as Node ID" 선택</li>
+                <li>복사된 Node ID를 아래 입력창에 붙여넣기</li>
+                <li>"SVG 가져오기" 버튼 클릭</li>
+                <li>결과 SVG 코드를 복사하여 사용</li>
+            </ol>
+        </div>
+
+        <div class="form-group">
+            <label for="nodeIds">Node ID (쉼표로 구분하여 여러 개 입력 가능)</label>
+            <input type="text" id="nodeIds" placeholder="예: 1:2, 3:4, 5:6">
+        </div>
+
+        <div class="form-group">
+            <label for="format">포맷</label>
+            <select id="format">
+                <option value="svg">SVG</option>
+                <option value="png">PNG</option>
+                <option value="jpg">JPG</option>
+                <option value="pdf">PDF</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="scale">배율</label>
+            <select id="scale">
+                <option value="1">1x</option>
+                <option value="2">2x</option>
+                <option value="4">4x</option>
+            </select>
+        </div>
+
+        <button class="btn" onclick="exportImages()">SVG 가져오기</button>
+
+        <div id="result" class="result" style="display: none;">
+            <h3>결과</h3>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        async function exportImages() {
+            const nodeIds = document.getElementById('nodeIds').value.trim();
+            const format = document.getElementById('format').value;
+            const scale = document.getElementById('scale').value;
+            const resultDiv = document.getElementById('result');
+            const resultContent = document.getElementById('resultContent');
+
+            if (!nodeIds) {
+                showError('Node ID를 입력해주세요.');
+                return;
+            }
+
+            // 버튼 비활성화
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '가져오는 중...';
+
+            try {
+                const nodeIdsArray = nodeIds.split(',').map(id => id.trim());
+                const params = new URLSearchParams({
+                    nodeIds: nodeIdsArray,
+                    format: format,
+                    scale: scale
+                });
+
+                const response = await fetch(`/api/figma/images?${params}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    showSuccess(data, format);
+                } else {
+                    showError(data.error || '가져오기에 실패했습니다.');
+                }
+            } catch (error) {
+                showError('네트워크 오류가 발생했습니다: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'SVG 가져오기';
+            }
+        }
+
+        function showSuccess(data, format) {
+            const resultDiv = document.getElementById('result');
+            const resultContent = document.getElementById('resultContent');
+
+            let html = '<div class="success">';
+            
+            if (data.err) {
+                html += `<p>⚠️ 일부 요소를 가져오는데 실패했습니다: ${data.err}</p>`;
+            }
+
+            if (data.images) {
+                html += '<h4>📁 Export된 파일들:</h4>';
+                for (const [nodeId, url] of Object.entries(data.images)) {
+                    html += `
+                        <div style="margin: 10px 0; padding: 10px; background: white; border-radius: 5px;">
+                            <strong>Node ID: ${nodeId}</strong><br>
+                            <a href="${url}" target="_blank" style="color: #2260FF;">${url}</a>
+                            <button class="btn copy-btn" onclick="copyToClipboard('${url}')">URL 복사</button>
+                        </div>
+                    `;
+                }
+
+                if (format === 'svg') {
+                    html += '<h4>📋 SVG 코드:</h4>';
+                    html += '<p>위 URL들을 클릭하여 SVG 코드를 확인하고 복사하세요.</p>';
+                }
+            }
+
+            html += '</div>';
+            
+            resultContent.innerHTML = html;
+            resultDiv.style.display = 'block';
+        }
+
+        function showError(message) {
+            const resultDiv = document.getElementById('result');
+            const resultContent = document.getElementById('resultContent');
+
+            resultContent.innerHTML = `<div class="error"><p>❌ ${message}</p></div>`;
+            resultDiv.style.display = 'block';
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('클립보드에 복사되었습니다!');
+            }).catch(() => {
+                // 폴백: 텍스트 선택 후 복사
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('클립보드에 복사되었습니다!');
+            });
+        }
+
+        // Enter 키로 실행
+        document.getElementById('nodeIds').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                exportImages();
+            }
+        });
+    </script>
+</body>
+</html> 
