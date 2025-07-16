@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -5,15 +6,17 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const { dbHelper } = require('./database');
-const huggingfaceService = require('./src/services/huggingfaceService');
+//const huggingfaceService = require('./src/services/huggingfaceService');
 
 const app = express();
 const PORT = 3001;
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+// .env 파일 로딩 문제를 확인하기 위해 임시로 하드코딩합니다.
+const JWT_SECRET = 'hihi';
+console.log(`[Server] JWT Secret is set to: '${JWT_SECRET}'`);
 
 // 미들웨어
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003'],
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:8000'],
   credentials: true,
 }));
 app.use(bodyParser.json({ limit: '10mb' }));

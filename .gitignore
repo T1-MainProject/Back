@@ -98,6 +98,14 @@ temp/
 .idea/
 *.swp
 *.swo
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Python cache
+__pycache__/
 *~
 
 # OS generated files

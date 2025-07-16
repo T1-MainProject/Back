@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css?family=League+Spartan&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=DM+Sans&display=swap" rel="stylesheet" />
+    <link href="css/main.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>피부진단 채팅 인터페이스</title>
+</head>
+<body>
+    <div class="chat-container">
+        <!-- 헤더 섹션 -->
+        <div class="header">
+            <div class="profile-section">
+                <div class="avatar">
+                    <!-- <img src="/images/v220_981.png" alt="Avatar"> -->
+                </div>
+                <div class="profile-info">
+                    <div class="username" id="user-greeting"></div>
+                </div>
+            </div>
+            <div class="settings-icon" onclick="alert('설정 메뉴는 현재 준비 중입니다.');" style="cursor: pointer;">
+                <i class="fas fa-cog"></i>
+            </div>
+        </div>
+        
+        <!-- 채팅 헤더 -->
+        <div class="chat-header">
+            <div class="back-button">
+                <i class="fas fa-arrow-left"></i>
+            </div>
+            <div class="bot-icon">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="bot-info">
+                <div class="bot-name">SBot</div>
+                <div class="status">
+                    <div class="status-dot"></div>
+                    <span>Always active</span>
+                </div>
+            </div>
+            <div class="menu-button">
+                <i class="fas fa-ellipsis-h"></i>
+            </div>
+        </div>
+        
+        <!-- 채팅 메시지 영역 -->
+        <div class="chat-messages">
+            <div class="time-stamp">Wed 8:21 AM</div>
+            
+            <!-- 봇 메시지 -->
+            <div class="message bot-message">
+                <div class="message-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    <div class="message-text">안녕하세요 저는 당신의 피부진단을 도와드리는 SBOT! 입니다.<br>무엇을 도와드릴까요?</div>
+                </div>
+            </div>
+            
+            <!-- 사용자 메시지 -->
+            <div class="message user-message">
+                <div class="message-content">
+                    <div class="message-text">화농육아종에 대해서알려줘</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 입력 영역 -->
+        <div class="chat-input">
+            <div class="input-field">
+                <input type="text" id="user-input" placeholder="Type a message...">
+                <div class="mic-button">
+                    <i class="fas fa-microphone"></i>
+                </div>
+            </div>
+            <div class="send-button" id="send-button">
+                <i class="fas fa-paper-plane"></i>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 테마 설정 즉시 실행 함수
+        (function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM 로드 완료');
+
+            const chatMessages = document.querySelector('.chat-messages');
+            const userInput = document.getElementById('user-input');
+            const sendButton = document.getElementById('send-button');
+            const settingsIcon = document.querySelector('.settings-icon');
+
+            if (!chatMessages || !userInput || !sendButton) {
+                console.error('채팅 UI의 필수 요소를 찾을 수 없습니다. 스크립트를 중단합니다.');
+                return;
+            }
+
+            if (settingsIcon) {
+                settingsIcon.addEventListener('click', () => alert('설정 메뉴는 현재 준비 중입니다.'));
+            }
+
+            const API_URL = 'http://localhost:8000';
+            let isWaitingForResponse = false;
+            let jwtToken = null; // JWT 토큰을 저장할 변수
+
+            function getCurrentTime() {
+                const now = new Date();
+                const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                const day = days[now.getDay()];
+                let hours = now.getHours();
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12; // 0시는 12시로
+                let minutes = now.getMinutes();
+                minutes = minutes < 10 ? '0' + minutes : minutes;
+                return `${day} ${hours}:${minutes} ${ampm}`;
+            }
+
+            function addUserMessage(message, scroll = true) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', 'user-message');
+                messageElement.innerHTML = `
+                    <div class="message-content">
+                        <div class="message-text">${message}</div>
+                        <div class="message-time">${getCurrentTime()}</div>
+                    </div>
+                `;
+                chatMessages.appendChild(messageElement);
+                if (scroll) chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            function addBotMessage(message, scroll = true) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', 'bot-message');
+                messageElement.innerHTML = `
+                    <div class="message-avatar"><i class="fas fa-robot"></i></div>
+                    <div class="message-content">
+                        <div class="message-text">${message.replace(/\n/g, '<br>')}</div>
+                        <div class="message-time">${getCurrentTime()}</div>
+                    </div>
+                `;
+                chatMessages.appendChild(messageElement);
+                if (scroll) chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            function addLoadingMessage() {
+                const messageElement = document.createElement('div');
+                messageElement.id = 'loading-message';
+                messageElement.classList.add('message', 'bot-message');
+                messageElement.innerHTML = `
+                    <div class="message-avatar"><i class="fas fa-robot"></i></div>
+                    <div class="message-content"><div class="message-text">답변을 생성 중입니다...</div></div>
+                `;
+                chatMessages.appendChild(messageElement);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            function removeLoadingMessage() {
+                const loadingMessage = document.getElementById('loading-message');
+                if (loadingMessage) loadingMessage.remove();
+            }
+
+            async function fetchBotResponse(message) {
+                addLoadingMessage();
+                isWaitingForResponse = true;
+
+                try {
+                    const response = await fetch('http://localhost:8000/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${jwtToken}`
+                        },
+                        body: JSON.stringify({ message: message })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('봇 응답을 가져오는데 실패했습니다.');
+                    }
+
+                    const data = await response.json();
+                    removeLoadingMessage();
+                    addBotMessage(data.response);
+                } catch (error) {
+                    console.error('봇 응답 오류:', error);
+                    removeLoadingMessage();
+                    addBotMessage('죄송합니다. 메시지를 처리하는 중 오류가 발생했습니다.');
+                } finally {
+                    isWaitingForResponse = false;
+                }
+            }
+
+            async function handleSendMessage() {
+                if (!jwtToken) {
+                    alert('인증 정보가 없습니다. 로그인 후 이용해주세요.');
+                    return;
+                }
+
+                const message = userInput.value.trim();
+                if (message && !isWaitingForResponse) {
+                    addUserMessage(message);
+                    userInput.value = '';
+                    await fetchBotResponse(message);
+                }
+            }
+
+            async function fetchHistory() {
+                if (!jwtToken) {
+                    addBotMessage('인증 정보가 없습니다. 로그인 후 이용해주세요.');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('http://localhost:8000/history', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${jwtToken}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('대화 기록을 가져오는데 실패했습니다.');
+                    }
+
+                    const data = await response.json();
+                    chatMessages.innerHTML = ''; // 기존 메시지 클리어
+                    if (data.messages && data.messages.length > 0) {
+                        data.messages.forEach(msg => {
+                            if (msg.role === 'user') {
+                                addUserMessage(msg.content, false);
+                            } else if (msg.role === 'assistant') {
+                                addBotMessage(msg.content, false);
+                            }
+                        });
+                    } else {
+                        // 대화 기록이 없을 때 초기 메시지
+                        addBotMessage('안녕하세요! 저는 당신의 AI 비서입니다. 무엇을 도와드릴까요?');
+                    }
+                } catch (error) {
+                    console.error('대화 기록 로드 오류:', error);
+                    addBotMessage('대화 기록을 불러오는 중 오류가 발생했습니다.');
+                } finally {
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            }
+
+            sendButton.addEventListener('click', handleSendMessage);
+            userInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleSendMessage();
+                }
+            });
+
+            async function fetchUserInfo() {
+                if (!jwtToken) return;
+
+                try {
+                    // server.js는 3001 포트에서 실행됩니다.
+                    const response = await fetch('http://localhost:3001/api/auth/me', {
+                        headers: {
+                            'Authorization': `Bearer ${jwtToken}`
+                        }
+                    });
+                    if (response.ok) {
+                        const userData = await response.json();
+                        document.getElementById('user-greeting').textContent = `안녕하세요! ${userData.user.name} 님!`;
+                    } else {
+                        document.getElementById('user-greeting').textContent = '안녕하세요! 방문자 님!';
+                    }
+                } catch (error) {
+                    console.error('사용자 정보 로드 오류:', error);
+                    document.getElementById('user-greeting').textContent = '안녕하세요! 방문자 님!';
+                }
+            }
+
+            // 페이지 로드 시 URL에서 토큰 추출 및 데이터 로드
+            const urlParams = new URLSearchParams(window.location.search);
+            jwtToken = urlParams.get('token');
+
+            if (jwtToken) {
+                console.log("Token found:", jwtToken);
+                fetchHistory();
+                fetchUserInfo();
+            } else {
+                console.error("Token not found in URL");
+                addBotMessage('인증 정보가 없습니다. 로그인 후 이용해주세요.');
+                document.getElementById('user-greeting').textContent = '안녕하세요! 방문자 님!';
+            }
+        });
+    </script>
+    
+    <!-- 바텀내비바 제거됨 -->
+
+    <style>
+        /* 바텀내비바 스타일 제거됨 */
+        
+        /* 채팅 컨테이너 하단 여백 조정 */
+        .chat-container {
+            padding-bottom: 20px;
+        }
+    </style>
+    </script>
+</body>
+</html>

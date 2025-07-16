@@ -10,7 +10,16 @@ export default function BottomNav({ onReservationChanged }) {
           <button className="flex-1 flex flex-col items-center justify-center">
             <img src="/images/B_home.svg" alt="Home" className="w-8 h-8 mt-[-12px]" />
           </button>
-          <button className="flex-1 flex flex-col items-center justify-center">
+          <button className="flex-1 flex flex-col items-center justify-center" onClick={() => {
+            const token = localStorage.getItem('token');
+            if (token) {
+              window.location.href = `http://localhost:8000/main.html?token=${token}`;
+            } else {
+              alert('로그인이 필요합니다.');
+              // 또는 로그인 페이지로 리디렉션
+              // window.location.href = '/login';
+            }
+          }}>
             <img src="/images/B_chat.svg" alt="Chat" className="w-8 h-8 mt-[-12px]" />
           </button>
           <button className="flex-1 flex flex-col items-center justify-center">
