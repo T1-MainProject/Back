@@ -2,7 +2,8 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 // 데이터베이스 파일 경로
-const dbPath = path.join(__dirname, 'medical_app.db');
+// 데이터베이스 파일 경로 (절대 경로로 수정)
+const dbPath = path.resolve(__dirname, 'medical_app.db');
 
 // 데이터베이스 연결
 const db = new sqlite3.Database(dbPath, (err) => {

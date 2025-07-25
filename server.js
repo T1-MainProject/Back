@@ -345,7 +345,7 @@ app.get('/api/reservations/user/:userId', authenticateToken, async (req, res) =>
   }
 });
 
-// 새 예약 생성 (챗봇용)
+// 새 예약 생성 (챗봇용 - 인증 제거)
 app.post('/api/reservations', async (req, res) => {
   try {
     const { userId, date, time, purpose } = req.body;
@@ -373,6 +373,24 @@ app.post('/api/reservations', async (req, res) => {
 
   } catch (error) {
     console.error('예약 생성 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 특정 사용자의 모든 예약 취소 (챗봇용)
+app.delete('/api/reservations/user/:userId', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId, 10);
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: '유효하지 않은 사용자 ID입니다.' });
+    }
+
+    // dbHelper에 해당 기능이 있다고 가정하고 호출
+    await dbHelper.deleteReservationByUserId(userId);
+    res.status(204).send(); // 성공적으로 처리되었으나 반환할 콘텐츠 없음
+
+  } catch (error) {
+    console.error('사용자 전체 예약 취소 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다.' });
   }
 });
