@@ -64,5 +64,13 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:3000"
+  "proxy": "http://localhost:3000",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/T1-MainProject/Back.git"
+  },
+  "bugs": {
+    "url": "https://github.com/T1-MainProject/Back/issues"
+  },
+  "homepage": "https://github.com/T1-MainProject/Back#readme"
 }
